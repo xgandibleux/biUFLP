@@ -178,7 +178,7 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
                             # if yes, the new label is pruned
                             verboseDev2 ? println("               listCA :", labeling2[i][jND]) : nothing
                             verboseDev2 ? println("               TEST 1 $jND (isDominates(x.CA,Cnew)?) : ",any(x -> isDominates(x.CA,Cnew), labeling2[i][jND]) ) : nothing
-                            addNewLabel = !any(x -> isDominates(x.CA,Cnew), labeling2[i][jND])
+                            addNewLabel =  !any(x -> isDominates(x.CA,Cnew), labeling2[i][jND])
 
                             if addNewLabel != false
                                 # test : remove all labels of 'labeling2[i][jND]' dominated by 'Cnew'                      

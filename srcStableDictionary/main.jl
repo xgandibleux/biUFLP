@@ -9,7 +9,7 @@ using Printf
 # ==============================================================================
 # parameters to control the app
 
-const verboseProd  = true  # displays on the terminal the useful info in production
+const verboseProd  = false  # displays on the terminal the useful info in production
 const verboseDev   = false  # displays on the terminal the development info
 const verboseDev2  = false  # displays on the terminal the development info for phase 2 (labeling)
 const experiment   = false  # run a full numerical experiment
@@ -29,6 +29,7 @@ include("mopRoutines.jl")
 include("pavingBnB.jl")
 include("reducePaving.jl")
 include("labeling.jl")
+include("reduceUsers.jl")
 
 if graphics
     if backendGR == :PyPlot
@@ -67,8 +68,8 @@ function main()
     else
         # setup for a single instance -----------------------------------------
 
-        dname = "../data/dataDidactic"
-        fnames = ["didactic1.txt"]
+        #dname = "../data/dataDidactic"
+        #fnames = ["didactic1.txt"]
         #fnames = ["didactic2.txt"]
 
         #dname = "../data/dataFernandez"
@@ -76,8 +77,8 @@ function main()
         #fnames  = ["F55-56.txt"]
         #fnames  = ["F54-57.txt"]
 
-        #dname = "../data/dataHarris"
-        #fnames  = ["H10-2000.txt"]
+        dname = "../data/dataHarris"
+        fnames  = ["H10-2000.txt"]
         
 
         # matrix storing the results

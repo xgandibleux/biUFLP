@@ -77,7 +77,7 @@ function main()
         #fnames  = ["F54-57.txt"]
 
         dname = "../data/dataHarris"
-        fnames  = ["H10-6000.txt"]
+        fnames  = ["H10-2000.txt"]
         
 
         # matrix storing the results

@@ -1,3 +1,13 @@
+# Version with a matrix as datastructure
+
+const withTraceAllocation = false
+
+
+# ==============================================================================
+function layer(i::Int64)
+    return mod(i+1,2)+1
+end
+
 
 # ==============================================================================
 function computeListNondominatedAllocationJ1oneUser(data::Instance, iUser::Int64, J1::Vector{Int64})
@@ -48,11 +58,11 @@ function computeListNondominatedAllocationJ1allUsers(data::Instance, J1::Vector{
             println(" ")
         end
 
-        J1nd = computeListNondominatedAllocationJ1oneUser(data, iUser, J1)
-        vctNDalloc[iUser] = copy(J1nd)
+        vctNDalloc[iUser] = computeListNondominatedAllocationJ1oneUser(data, iUser, J1)
 
         # summary -----------------------------------------------------------------
         if verboseDev2
+            J1nd = vctNDalloc[iUser]
             if length(vctNDalloc[iUser])==1  
                 println("$(J1nd[begin])  ( $(data.c1[iUser,J1nd[begin]])  $(data.c2[iUser,J1nd[begin]]) ) dominating all others") 
             else
@@ -70,54 +80,50 @@ end
 
 # ==============================================================================
 # Labeling procedure for a given box
-function labelingOneBox!(data::Instance, b::Box, all_YN)
+function labelingOneBox!(dataFull::Instance, b::Box, all_YN)
 
     verboseDev2 ? println("=================================================================") : nothing
     verboseDev2 ? println("J1 $(b.J1)") : nothing
 
-    # -------------------------------------------------------------------------
-    # Compute the nondominated allocations for all users ----------------------    
-    vctNDalloc = computeListNondominatedAllocationJ1allUsers(data, b.J1)
 
-    if verboseDev2 
+    # -------------------------------------------------------------------------    
+    # Compute the nondominated allocations for all users ---------------------- 
+
+  #=  nbsingleAlloc = 0
+    #if verboseDev2 
         for iUser in 1:data.nI
-            println("i:$iUser  j:$(vctNDalloc[iUser])")
+            if length(J1nd[iUser]) == 1
+            println("i:$iUser  j:$(J1nd[iUser])")
+            nbsingleAlloc+=1
+            end
         end
-    end
+    #end
+    @show nbsingleAlloc
+=#
 
+    data = deepcopy(dataFull)
 
-    # -------------------------------------------------------------------------
-    # Initialization
+    #J1nd = computeListNondominatedAllocationJ1allUsers(data, b.J1); k1=0; k2=0
+    J1nd, k1, k2 = computeLocalDominatedAllocation(data::Instance, b::Box)
+    #@show J1nd
+    #@show k1, k2, data.nI
 
-    J1 = b.J1
-    J1nd = vctNDalloc
 
     # The datastructure for representing the graphs of allocations ------------
-    # services-users is a vector of dictionaries where
-    # - keys are nondominated allocations services-users for a given level
-    # - values are a list of labels
-    labeling2=Vector{Dict{Int, Vector{Label}}}(undef,data.nI)
-
-    # Create one empty dictionary for each user -------------------------------
-    for i in 1:data.nI
-        labeling2[i] = Dict{Int,Vector{Label}}()
-    end
+    labeling = Array{Union{Nothing,Vector{Vector{Int64}}}}(nothing,data.nJ,2)
 
 
     # -------------------------------------------------------------------------
     # Compute the first layer of the graph ------------------------------------
     # As for the first user (i.e first layer) the dummy label [(0,0)[]] has to be
     # the first layer is obtained in computing (0,0) + (c1,c2) and []//service
+    
     i=1
     verboseDev2 ? println("LAYER $i ==================================================") : nothing
     for (pos,j) in enumerate(J1nd[i])
-        # compute the labels for user i - service j∈J1nd
-        c1 = data.c1[i,j]
-        c2 = data.c2[i,j]
-        labeling2[i][j] = [Label([c1,c2],[j])]
-        verboseDev2 ? println("$i $j [$c1 $c2 ; $j]") : nothing
+        labeling[j,layer(i)] = [ [ data.c1[i,j] , data.c2[i,j] ] ]
+        verboseDev2 ? println("$i $j [$(data.c1[i,j]) $(data.c2[i,j]) ; $j]") : nothing
     end
-
 
     # -------------------------------------------------------------------------    
     # Compute the others layers of the graph ----------------------------------
@@ -131,30 +137,37 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
     for i in 2:data.nI
         verboseDev2 ? println("LAYER $i ==================================================") : nothing
 
-        for j in keys(labeling2[i-1])
+        # prepare the layer for the user i in filling the structure with nothing
+        labeling[:,layer(i)] = fill(nothing,data.nJ)
+
+        for (pos,jPrec) in enumerate( J1nd[ i-1 ] )
+              
             # forall nondominated services opened on the preceding users ------
-            verboseDev2 ? println("  i(previous)=$(i-1) j=$j ") : nothing
+            verboseDev2 ? println("  i(previous)=$(i-1) j=$jPrec ") : nothing
 
-            for l in values(labeling2[i-1][j])
+            #println(labeling[jPrec,layer(i-1)])
+
+            if labeling[jPrec,layer(i-1)] != nothing
+
+            for (pos,label) in enumerate( labeling[jPrec,layer(i-1)] )
+
+                 verboseDev2 ? println("      label to propagate : ", label) : nothing
                 # forall existing labels --------------------------------------
-
-                verboseDev2 ? println("      label to propagate : ", l.CA, " ", l.listJ1) : nothing
 
                 for (pos,j) in enumerate(J1nd[i])
                     # compute the labels  user i and service j∈J1nd -----------
 
-                    C = [data.c1[i,j],data.c2[i,j]]
-                    Cnew = copy(l.CA)+C
-                    verboseDev2 ? println("      >>>  allocation cost of i=$i at j=$j : ($(C[1]) $(C[2]))$j  --> giving [$(Cnew[1]) $(Cnew[2])]") : nothing
-
-                    # test the propagated cost l.CA+C -------------------------
+                    Cnew = [ label[1] + data.c1[i,j] , label[2] + data.c2[i,j] ]
+                    verboseDev2 ? println("      >>>  allocation cost of i=$i at j=$j : ($(data.c1[i,j]) $(data.c2[i,j]))$j  --> giving [$(Cnew[1]) $(Cnew[2])]") : nothing
+ 
+                    # test the propagated cost label.CA+C -------------------------
 
                     addNewLabel = true
 
                     # ---------------------------------------------------------
                     # 1. test with a local bound (known on the current box) 
-                    if  (    (b.CR[2] + Cnew[2] > b.y12[2]) # out of the box at NW
-                          || (b.CR[1] + Cnew[1] > b.y21[1]) # out of the box at SE
+                    if  (    (b.CR[2] + Cnew[2]+k2 > b.y12[2]) # out of the box at NW
+                          || (b.CR[1] + Cnew[1]+k1 > b.y21[1]) # out of the box at SE
                         )
                         # new label is out of the bounds of its reduced box => discarded
                         verboseDev2 ? println("test 1 true: OUT OF BOX") : nothing
@@ -169,24 +182,31 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
                     # 3. tests with labels already available on the current layer
                     if addNewLabel
 
-                        for jND in keys(labeling2[i])
+                        for (pos,jND) in enumerate(J1nd[i])
                             # j : services nondominated opened on the current layer
+                            
+                            if labeling[jND,layer(i)] != nothing
 
-                           !addNewLabel && break # dirty way to leave the 'for jND loop' when the new label is dominated
+                                !addNewLabel && break # dirty way to leave the 'for jND loop' when the new label is dominated
 
-                            # test : verify if it exists one label of 'labeling2[i][jND]' who dominates 'Cnew'
-                            # if yes, the new label is pruned
-                            verboseDev2 ? println("               listCA :", labeling2[i][jND]) : nothing
-                            verboseDev2 ? println("               TEST 1 $jND (isDominates(x.CA,Cnew)?) : ",any(x -> isDominates(x.CA,Cnew), labeling2[i][jND]) ) : nothing
-                            addNewLabel = !any(x -> isDominates(x.CA,Cnew), labeling2[i][jND])
+                                # test : verify if it exists one label of 'labeling2[layer(i)][jND]' who dominates 'Cnew'
+                                # if yes, the new label is pruned
 
-                            if addNewLabel != false
-                                # test : remove all labels of 'labeling2[i][jND]' dominated by 'Cnew'                      
-                                verboseDev2 ? println("               TEST 2 $jND (isDominates(Cnew,x.CA)?) : ",any(x -> isDominates(Cnew,x.CA,), labeling2[i][jND])) : nothing
-                                filter!(x -> !isDominates(Cnew,x.CA), labeling2[i][jND])
+                                verboseDev2 ? println("               listCA :", labeling[jND,layer(i)]) : nothing
+                                verboseDev2 ? println("               TEST 1 $jND (isDominates(x.CA,Cnew)?) : ",any(x -> isDominates(x,Cnew), labeling[jND,layer(i)] )) : nothing
+
+                                addNewLabel = !any(x -> isDominates(x,Cnew), labeling[jND,layer(i)])
+                          
+                                if addNewLabel != false
+                                    # test : remove all labels of 'labeling[jND,layer(i)]' dominated by 'Cnew'
+                                    verboseDev2 ? println("               TEST 2 $jND (isDominates(Cnew,x.CA)?) : ",any(x -> isDominates(Cnew,x), labeling[jND,layer(i)])) : nothing
+                                    filter!(x -> !isDominates(Cnew,x), labeling[jND,layer(i)] )
+                                end
+
+                                verboseDev2 ? println(" ") : nothing        
+                            else
+                                break      
                             end
-
-                            verboseDev2 ? println(" ") : nothing              
                         end
 
                     end # test 3
@@ -194,47 +214,50 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
                     # ---------------------------------------------------------                    
                     # if lnew is nondominated it is added in the list of labels 
                     if addNewLabel               
-                        lnew = Label(copy(l.CA)+C, push!(copy(l.listJ1),j))            
-                        verboseDev2 ? println("           ADD : ",lnew) : nothing
-
-                        if j in keys(labeling2[i])
-                            # key  present -> add the labet to the list of label(s)
-                            push!(labeling2[i][j],lnew)
+                        if labeling[j,layer(i)] != nothing
+                            # labels already  present -> add the label to the list of label(s)
+                            push!(labeling[j,layer(i)],Cnew)
                         else
-                            # key not yet present -> initiate the list with the label
-                            labeling2[i][j] = [lnew]
+                            # label not yet present -> initiate the list with the label
+                            labeling[j,layer(i)] = [Cnew]
                         end
+                        verboseDev2 ? println("           ADD : ",Cnew) : nothing
                     else 
                         verboseDev2 ? println("           DISCARD (new label is dominated) : ",Cnew) : nothing
-                        #@assert false "stop"
-                    end
+                    end #addNewLabel
 
-                end
+                end # nondominated services opened on the current layer
 
             end # labels of nondominated services j on previous layer
+            end
 
             verboseDev2 ? println(" ") : nothing
+
         end # nondominated services opened on the previous layer
 
     end # users
 
-
     # -----------------------------------------------------------------------------
     # Extract all the labels available on the last layer --------------------------
-    for jND in keys(labeling2[data.nI])
+    for (pos,jND) in enumerate(J1nd[data.nI])
         # jND : services nondominated opened on the last layer
 
-        for ilabel in 1:length(labeling2[data.nI][jND])
-            verboseDev2 ? println(labeling2[data.nI][jND][ilabel]) : nothing
-            verboseDev2 ? println(labeling2[data.nI][jND][ilabel].CA+b.CR) : nothing
-            push!(all_YN, (b.CR[1]+labeling2[data.nI][jND][ilabel].CA[1], b.CR[2]+labeling2[data.nI][jND][ilabel].CA[2]) )
+        if labeling[jND,layer(data.nI)] != nothing
 
-            println(J1," ", labeling2[data.nI][jND][ilabel].CA+b.CR, labeling2[data.nI][jND][ilabel])
-            # FAIRE : stocker dans la box (champ a ajouter) pour archiver CA et allocation correspondante
+            for ilabel in 1:length(labeling[jND,layer(data.nI)])
+                verboseDev2 ? println(labeling[jND,layer(data.nI)][ilabel]) : nothing
+                verboseDev2 ? println(labeling[jND,layer(data.nI)][ilabel]+b.CR) : nothing
+                push!(all_YN, (b.CR[1]+labeling[jND,layer(data.nI)][ilabel][1]+k1, b.CR[2]+labeling[jND,layer(data.nI)][ilabel][2]+k2) )
+
+                #println(J1," ", labeling2[layer(data.nI)][jND][ilabel].CA+b.CR, labeling2[layer(data.nI)][jND][ilabel])
+                # FAIRE : stocker dans la box (champ a ajouter) pour archiver CA et allocation correspondante
+            end
         end
 
     end
 
+    #@show all_YN
+    #@assert false "stop"
     return nothing
 end
 
@@ -252,16 +275,22 @@ function labelingPaving!(data::Instance, paving::Vector{Box})
     # Develop all the boxes in the paving -------------------------------------
     for ib in eachindex(paving)
         numbox+=1
-        verboseDev2 ? println("  Develop box number: $numbox") : nothing
-        labelingOneBox!(data, paving[ib], all_YN)
+        #verboseDev2 ? 
+        println("  Develop box number: $numbox", paving[ib].J1) #: nothing
+        if length(paving[ib].J1) > 1
+            labelingOneBox!(data, paving[ib], all_YN)
+        else
+            # box reduced to a point => added to all_YN and nothing to do
+            push!(all_YN, (paving[ib].y12[1], paving[ib].y12[2]) )
+        end
     end # 
 
     verboseDev2 ? println("all_YN", all_YN) : nothing
 
     # Extract the global set of nondominated points from the local sets of nondominated points (from all boxes) 
     ND_YN = getNonDominatedPoints(all_YN)
-    verboseDev2 ? println("ND_YN", ND_YN) : nothing
-    #println("ND_YN", ND_YN)
+    #verboseDev2 ? 
+    #println("ND_YN", ND_YN) #: nothing
 
     return ND_YN, all_YN
 end

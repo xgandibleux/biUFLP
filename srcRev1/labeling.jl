@@ -1,3 +1,4 @@
+const withTraceAllocation = false
 
 # ==============================================================================
 function computeListNondominatedAllocationJ1oneUser(data::Instance, iUser::Int64, J1::Vector{Int64})
@@ -112,10 +113,15 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
     verboseDev2 ? println("LAYER $i ==================================================") : nothing
     for (pos,j) in enumerate(J1nd[i])
         # compute the labels for user i - service j∈J1nd
-        c1 = data.c1[i,j]
-        c2 = data.c2[i,j]
-        labeling2[i][j] = [Label([c1,c2],[j])]
-        verboseDev2 ? println("$i $j [$c1 $c2 ; $j]") : nothing
+        if withTraceAllocation
+            #@inbounds labeling2[i][j] = [Label([ data.c1[i,j] , data.c2[i,j] ], Vector{UInt16}(undef,data.nI))]
+            @inbounds labeling2[i][j] = [Label([ data.c1[i,j] , data.c2[i,j] ], Vector{UInt16}(undef,1))]
+            @inbounds labeling2[i][j][1].listJ1[1] = UInt16(j)
+        else
+            @inbounds labeling2[i][j] = [Label([ data.c1[i,j] , data.c2[i,j] ], [])]
+        end
+
+        verboseDev2 ? println("$i $j [$(data.c1[i,j]) $(data.c2[i,j]) ; $j]") : nothing
     end
 
 
@@ -130,6 +136,7 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
 
     for i in 2:data.nI
         verboseDev2 ? println("LAYER $i ==================================================") : nothing
+        #print(i," ")
 
         for j in keys(labeling2[i-1])
             # forall nondominated services opened on the preceding users ------
@@ -143,9 +150,8 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
                 for (pos,j) in enumerate(J1nd[i])
                     # compute the labels  user i and service j∈J1nd -----------
 
-                    C = [data.c1[i,j],data.c2[i,j]]
-                    Cnew = copy(l.CA)+C
-                    verboseDev2 ? println("      >>>  allocation cost of i=$i at j=$j : ($(C[1]) $(C[2]))$j  --> giving [$(Cnew[1]) $(Cnew[2])]") : nothing
+                    @inbounds Cnew = [ l.CA[1] + data.c1[i,j] , l.CA[2] + data.c2[i,j] ]
+                    verboseDev2 ? println("      >>>  allocation cost of i=$i at j=$j : ($(data.c1[i,j]) $(data.c2[i,j]))$j  --> giving [$(Cnew[1]) $(Cnew[2])]") : nothing
 
                     # test the propagated cost l.CA+C -------------------------
 
@@ -178,13 +184,54 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
                             # if yes, the new label is pruned
                             verboseDev2 ? println("               listCA :", labeling2[i][jND]) : nothing
                             verboseDev2 ? println("               TEST 1 $jND (isDominates(x.CA,Cnew)?) : ",any(x -> isDominates(x.CA,Cnew), labeling2[i][jND]) ) : nothing
-                            addNewLabel = !any(x -> isDominates(x.CA,Cnew), labeling2[i][jND])
 
+                            # REV1 : begin
+                            # old
+                            addNewLabel = !any(x -> isDominates(x.CA,Cnew), labeling2[i][jND])
+                            # new
+                            #for iLabel in eachindex(labeling2[i][jND])
+                            #    if isDominates(labeling2[i][jND][iLabel].CA,Cnew)
+                            #        #println(" Oui en $i. $(labeling2[i][jND][iLabel].CA) $(Cnew)")
+                            #        addNewLabel = false
+                            #        break # again a dirty way to leave the loop
+                            #    end
+                            #end
+                            # REV1 : end
+
+
+                            # REV1 : begin
+                            # old                            
                             if addNewLabel != false
                                 # test : remove all labels of 'labeling2[i][jND]' dominated by 'Cnew'                      
                                 verboseDev2 ? println("               TEST 2 $jND (isDominates(Cnew,x.CA)?) : ",any(x -> isDominates(Cnew,x.CA,), labeling2[i][jND])) : nothing
                                 filter!(x -> !isDominates(Cnew,x.CA), labeling2[i][jND])
                             end
+                            #new
+                            #if addNewLabel
+                            #    for iLabel in reverse(eachindex(labeling2[i][jND]))
+                            #        if isDominates(Cnew,labeling2[i][jND][iLabel].CA)
+                            #          deleteat!(labeling2[i][jND],iLabel)
+                            #        end
+                            #    end                         
+                            #end
+                            # REV1 : end  
+                            
+
+                            # REV1 : begin  
+                            # old
+                            # any et filter    
+                            #for iLabel in reverse(eachindex(labeling2[i][jND]))
+                            #    if isDominates(labeling2[i][jND][iLabel].CA,Cnew)
+                            #        #println(" Oui en $i. $(labeling2[i][jND][iLabel].CA) $(Cnew)")
+                            #        addNewLabel = false
+                            #        break # again a dirty way to leave the loop
+                            #    else
+                            #        if isDominates(Cnew,labeling2[i][jND][iLabel].CA)
+                            #            deleteat!(labeling2[i][jND],iLabel)
+                            #        end                                    
+                            #    end
+                            #end                       
+                            # REV1 : end  
 
                             verboseDev2 ? println(" ") : nothing              
                         end
@@ -194,11 +241,18 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
                     # ---------------------------------------------------------                    
                     # if lnew is nondominated it is added in the list of labels 
                     if addNewLabel               
-                        lnew = Label(copy(l.CA)+C, push!(copy(l.listJ1),j))            
+                        if withTraceAllocation 
+                            #lnew = Label(Cnew, copy(l.listJ1))
+                            lnew = Label(Cnew, Vector{UInt16}(undef,i))
+                            lnew.listJ1[1:i-1] = l.listJ1[1:i-1]
+                            @inbounds lnew.listJ1[i] = UInt16(j)     # allocation user i to service j
+                        else 
+                            lnew = Label(Cnew, [])  
+                        end                             
                         verboseDev2 ? println("           ADD : ",lnew) : nothing
 
                         if j in keys(labeling2[i])
-                            # key  present -> add the labet to the list of label(s)
+                            # key  present -> add the label to the list of label(s)
                             push!(labeling2[i][j],lnew)
                         else
                             # key not yet present -> initiate the list with the label
@@ -229,7 +283,7 @@ function labelingOneBox!(data::Instance, b::Box, all_YN)
             verboseDev2 ? println(labeling2[data.nI][jND][ilabel].CA+b.CR) : nothing
             push!(all_YN, (b.CR[1]+labeling2[data.nI][jND][ilabel].CA[1], b.CR[2]+labeling2[data.nI][jND][ilabel].CA[2]) )
 
-            println(J1," ", labeling2[data.nI][jND][ilabel].CA+b.CR, labeling2[data.nI][jND][ilabel])
+            #println(J1," ", labeling2[data.nI][jND][ilabel].CA+b.CR, labeling2[data.nI][jND][ilabel])
             # FAIRE : stocker dans la box (champ a ajouter) pour archiver CA et allocation correspondante
         end
 
@@ -252,7 +306,8 @@ function labelingPaving!(data::Instance, paving::Vector{Box})
     # Develop all the boxes in the paving -------------------------------------
     for ib in eachindex(paving)
         numbox+=1
-        verboseDev2 ? println("  Develop box number: $numbox") : nothing
+        #verboseDev2 ? 
+        println("  Develop box number: $numbox", paving[ib].J1) #: nothing
         labelingOneBox!(data, paving[ib], all_YN)
     end # 
 

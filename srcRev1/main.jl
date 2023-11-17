@@ -67,8 +67,8 @@ function main()
     else
         # setup for a single instance -----------------------------------------
 
-        dname = "../data/dataDidactic"
-        fnames = ["didactic1.txt"]
+        #dname = "../data/dataDidactic"
+        #fnames = ["didactic1.txt"]
         #fnames = ["didactic2.txt"]
 
         #dname = "../data/dataFernandez"
@@ -76,8 +76,8 @@ function main()
         #fnames  = ["F55-56.txt"]
         #fnames  = ["F54-57.txt"]
 
-        #dname = "../data/dataHarris"
-        #fnames  = ["H10-2000.txt"]
+        dname = "../data/dataHarris"
+        fnames  = ["H10-4000.txt"]
         
 
         # matrix storing the results

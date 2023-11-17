@@ -25,6 +25,7 @@ include("dataStru.jl")
 include("parser.jl")
 include("vopt.jl")
 include("biUFLP.jl")
+include("reduce.jl")
 include("mopRoutines.jl")
 include("pavingBnB.jl")
 include("reducePaving.jl")
@@ -46,8 +47,8 @@ function main()
     if experiment
         # prepare the experiment on a list of instances ------------------------
 
-        dname = "../data/dataFernandez"
-        #dname = "../data/dataHarris"
+        #dname = "../data/dataFernandez"
+        dname = "../data/dataHarris"
 
         # get all the names of the datasets for a given collection available in folder 'dnameE'
         fnames = getfnames(dname)
@@ -67,17 +68,18 @@ function main()
     else
         # setup for a single instance -----------------------------------------
 
-        dname = "../data/dataDidactic"
-        fnames = ["didactic1.txt"]
+        #dname = "../data/dataDidactic"
+        #fnames = ["didactic1.txt"]
         #fnames = ["didactic2.txt"]
 
         #dname = "../data/dataFernandez"
         #fnames  = ["F50-51.txt"]
         #fnames  = ["F55-56.txt"]
         #fnames  = ["F54-57.txt"]
-
-        #dname = "../data/dataHarris"
-        #fnames  = ["H10-2000.txt"]
+        #fnames  = ["F50-55.txt"]
+        
+        dname = "../data/dataHarris"
+        fnames  = ["H10-2000.txt"]
         
 
         # matrix storing the results

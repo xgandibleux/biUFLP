@@ -11,7 +11,7 @@ using Printf
 
 const verboseProd  = true  # displays on the terminal the useful info in production
 const verboseDev   = false  # displays on the terminal the development info
-const verboseDev2  = false  # displays on the terminal the development info for phase 2 (labeling)
+const verboseDev2  = true  # displays on the terminal the development info for phase 2 (labeling)
 const experiment   = false  # run a full numerical experiment
 const vOptSolver   = false  # run vOptGeneric with ϵ-constraint and glpk or gurobi
 const graphics     = false   # display on the screen graphics 
@@ -25,6 +25,7 @@ include("dataStru.jl")
 include("parser.jl")
 include("vopt.jl")
 include("biUFLP.jl")
+include("reduce.jl")
 include("mopRoutines.jl")
 include("pavingBnB.jl")
 include("reducePaving.jl")
@@ -46,8 +47,8 @@ function main()
     if experiment
         # prepare the experiment on a list of instances ------------------------
 
-        dname = "../data/dataFernandez"
-        #dname = "../data/dataHarris"
+        #dname = "../data/dataFernandez"
+        dname = "../data/dataHarris"
 
         # get all the names of the datasets for a given collection available in folder 'dnameE'
         fnames = getfnames(dname)
@@ -75,9 +76,11 @@ function main()
         #fnames  = ["F50-51.txt"]
         #fnames  = ["F55-56.txt"]
         #fnames  = ["F54-57.txt"]
+        #fnames  = ["F50-55.txt"]
+        
 
         #dname = "../data/dataHarris"
-        #fnames  = ["H10-2000.txt"]
+        #fnames  = ["H10-4000.txt"]
         
 
         # matrix storing the results

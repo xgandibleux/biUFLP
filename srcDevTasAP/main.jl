@@ -5,16 +5,17 @@
 
 println("Run bi-0/1-UFLP solver")
 using Printf
+#using StaticArrays
 
 # ==============================================================================
 # parameters to control the app
 
-const verboseProd  = true  # displays on the terminal the useful info in production
+const verboseProd  = false  # displays on the terminal the useful info in production
 const verboseDev   = false  # displays on the terminal the development info
 const verboseDev2  = false  # displays on the terminal the development info for phase 2 (labeling)
-const experiment   = false  # run a full numerical experiment
+const experiment   = true  # run a full numerical experiment
 const vOptSolver   = false  # run vOptGeneric with ϵ-constraint and glpk or gurobi
-const graphics     = false   # display on the screen graphics 
+const graphics     = false   # display on the screen graphics
 const backendGR    = :PyPlot
 #const backendGR   = :Luxor
 
@@ -23,12 +24,16 @@ const backendGR    = :PyPlot
 
 include("dataStru.jl")
 include("parser.jl")
-include("vopt.jl")
+#include("vopt.jl")
 include("biUFLP.jl")
+include("reduce.jl")
 include("mopRoutines.jl")
 include("pavingBnB.jl")
 include("reducePaving.jl")
-include("labeling.jl")
+#include("labeling.jl")
+#include("labelingBourrinOrdre.jl")
+include("labelingBourrinOrdrevct.jl")
+#include("labelingBourrinOrdrevctTasjulia.jl")
 
 if graphics
     if backendGR == :PyPlot
@@ -55,7 +60,7 @@ function main()
         # matrix storing the results
         results = Array{Any, 2}(undef, length(fnames), 7)
 
-        # run a didactic instance to compile all the code 
+        # run a didactic instance to compile all the code
         data = load2UFLP("../data/dataDidactic","didactic1.txt")
         if !vOptSolver
             biUFLPsolver(data)
@@ -69,16 +74,17 @@ function main()
 
         dname = "../data/dataDidactic"
         fnames = ["didactic1.txt"]
-        #fnames = ["didactic2.txt"]
+        fnames = ["didactic2.txt"]
 
         #dname = "../data/dataFernandez"
         #fnames  = ["F50-51.txt"]
         #fnames  = ["F55-56.txt"]
         #fnames  = ["F54-57.txt"]
+        #fnames  = ["F50-55.txt"]
 
         #dname = "../data/dataHarris"
-        #fnames  = ["H10-2000.txt"]
-        
+        #fnames  = ["H10-10000.txt"]
+
 
         # matrix storing the results
         results = Array{Any, 2}(undef, 1, 7)
@@ -87,15 +93,15 @@ function main()
     # call the solver ---------------------------------------------------------
     for i in eachindex(fnames)
         verboseProd ? println("\n>>> [0] LOADING DATASET ") : nothing
-    
+
         data  = load2UFLP(dname,fnames[i])
         if vOptSolver
             getTime = time()
             YN=vOpt(data,"GUROBI") # GLPK or GUROBI
             timevOPt = round(time()- getTime, digits=4)
-            results[i,1] = fnames[i]        
+            results[i,1] = fnames[i]
             results[i,6] = timevOPt
-            results[i,7] = length(YN)                             
+            results[i,7] = length(YN)
             if graphics
                 if backendGR == :PyPlot
                     thecolor = "green"; themarkerstyle = "o"; themarkersize = 15
@@ -106,11 +112,11 @@ function main()
             paving,timePaving,timeReducing,nbBoxPaving,nbBoxReducing,timeLabeling, ND_YN=biUFLPsolver(data) # ajouter le retour avec YN et XE lors integration dans vOptSolver
             results[i,1] = fnames[i]
             results[i,2] = timePaving
-            results[i,3] = timeReducing                        
+            results[i,3] = timeReducing
             results[i,4] = nbBoxPaving
-            results[i,5] = nbBoxReducing   
+            results[i,5] = nbBoxReducing
             results[i,6] = timeLabeling
-            results[i,7] = length(ND_YN) 
+            results[i,7] = length(ND_YN)
 
             if graphics
                 if backendGR == :PyPlot
@@ -142,7 +148,7 @@ function main()
         println("      fnames         tOpt        #YN")
         for i in 1:size(results,1)
             @printf(" %11s   %10.6f     %6d\n", results[i,1][1:end-4], results[i,6], results[i,7])
-        end    
+        end
     end
 
     return nothing
