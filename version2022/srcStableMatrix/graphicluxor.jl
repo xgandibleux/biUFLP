@@ -171,4 +171,9 @@ function drawGraphics(paving,YN)
 
     end
 
+
+    # epilogue ----------------------------------------------------------------
+    #finish()
+    #preview()
+
 end

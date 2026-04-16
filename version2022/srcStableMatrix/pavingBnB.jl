@@ -194,10 +194,6 @@ function computePavingBranchAndBound(data::Instance)
         # DEQUEUE: ------------------------------------------------------------        
         # j is an index on the node from listL to be processed at the current level of the tree 
         for j in head:length(listL)
-           # for lll in 1:length(listL)
-           #     println(" >>> ", listL[lll].J1)#$head  $j")
-           # end
-           # println("")
 
             # TEST 1 ----------------------------------------------------------
             # test if CR is weakly dominated

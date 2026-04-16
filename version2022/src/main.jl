@@ -1,21 +1,20 @@
 # ==============================================================================
 # fname : main.jl
-# March 2026
+# August 2022
 # ==============================================================================
 
-println("Run bi-objective 0/1 UFLP solver")
+println("Run bi-0/1-UFLP solver")
 using Printf
 
 # ==============================================================================
 # parameters to control the app
 
-const verboseProd  = false  # displays on the terminal the useful info in production
+const verboseProd  = true  # displays on the terminal the useful info in production
 const verboseDev   = false  # displays on the terminal the development info
 const verboseDev2  = false  # displays on the terminal the development info for phase 2 (labeling)
 const experiment   = false  # run a full numerical experiment
-
-const vOptSolver   = false   # run vOptGeneric with ϵ-constraint and glpk or gurobi
-const graphics     = false   # display on the screen graphics
+const vOptSolver   = false  # run vOptGeneric with ϵ-constraint and glpk or gurobi
+const graphics     = false   # display on the screen graphics 
 const backendGR    = :PyPlot
 #const backendGR   = :Luxor
 
@@ -24,14 +23,12 @@ const backendGR    = :PyPlot
 
 include("dataStru.jl")
 include("parser.jl")
-#include("vopt.jl")
-include("voptMOA.jl")
+include("vopt.jl")
 include("biUFLP.jl")
-include("reduce.jl")
 include("mopRoutines.jl")
 include("pavingBnB.jl")
 include("reducePaving.jl")
-include("labelingBourrinOrdrevct.jl")
+include("labeling.jl")
 
 if graphics
     if backendGR == :PyPlot
@@ -49,8 +46,8 @@ function main()
     if experiment
         # prepare the experiment on a list of instances ------------------------
 
-        #dname = "../data/dataFernandez"
-        dname = "../data/dataHarris"
+        dname = "../data/dataFernandez"
+        #dname = "../data/dataHarris"
 
         # get all the names of the datasets for a given collection available in folder 'dnameE'
         fnames = getfnames(dname)
@@ -58,35 +55,30 @@ function main()
         # matrix storing the results
         results = Array{Any, 2}(undef, length(fnames), 7)
 
-        # run a didactic instance to compile all the code
+        # run a didactic instance to compile all the code 
         data = load2UFLP("../data/dataDidactic","didactic1.txt")
         if !vOptSolver
             biUFLPsolver(data)
         else
-            #vOpt_MOA(data,"GUROBI")
-            epsilonConstraint(data,"GUROBI") 
+            vOpt(data,"GUROBI") # GLPK or GUROBI
         end
 
 
     else
         # setup for a single instance -----------------------------------------
 
-        #dname = "../data/dataDidactic"
-        #fnames = ["didactic1.txt"]
+        dname = "../data/dataDidactic"
+        fnames = ["didactic1.txt"]
         #fnames = ["didactic2.txt"]
 
-        dname = "../data/dataFernandez"
+        #dname = "../data/dataFernandez"
         #fnames  = ["F50-51.txt"]
-        fnames  = ["F50-56.txt"]        
-        #fnames  = ["F53-56.txt"] 
-        #fnames  = ["F53-54.txt"]        
-        #fnames  = ["F53-56.txt"]  
-        #fnames  = ["F53-57.txt"]                   
-        #fnames  = ["F28-29.txt"]         
+        #fnames  = ["F55-56.txt"]
+        #fnames  = ["F54-57.txt"]
 
         #dname = "../data/dataHarris"
-        #fnames  = ["H10-2000.txt"]        
-        #fnames  = ["H10-10000.txt"]
+        #fnames  = ["H10-2000.txt"]
+        
 
         # matrix storing the results
         results = Array{Any, 2}(undef, 1, 7)
@@ -95,33 +87,30 @@ function main()
     # call the solver ---------------------------------------------------------
     for i in eachindex(fnames)
         verboseProd ? println("\n>>> [0] LOADING DATASET ") : nothing
-
+    
         data  = load2UFLP(dname,fnames[i])
         if vOptSolver
-            #getTime = time()
-            #YN, timevOPt = vOpt_MOA(data,"GUROBI") 
-            YN, timevOPt = epsilonConstraint(data,"GUROBI") 
-            #timevOPt = round(time()- getTime, digits=4)
-            results[i,1] = fnames[i]
+            getTime = time()
+            YN=vOpt(data,"GUROBI") # GLPK or GUROBI
+            timevOPt = round(time()- getTime, digits=4)
+            results[i,1] = fnames[i]        
             results[i,6] = timevOPt
-            results[i,7] = length(YN)
+            results[i,7] = length(YN)                             
             if graphics
                 if backendGR == :PyPlot
                     thecolor = "green"; themarkerstyle = "o"; themarkersize = 15
                     displayYN(YN,thecolor,themarkerstyle,themarkersize)
                 end
             end
-            #@show YN
         else
             paving,timePaving,timeReducing,nbBoxPaving,nbBoxReducing,timeLabeling, ND_YN=biUFLPsolver(data) # ajouter le retour avec YN et XE lors integration dans vOptSolver
             results[i,1] = fnames[i]
             results[i,2] = timePaving
-            results[i,3] = timeReducing
+            results[i,3] = timeReducing                        
             results[i,4] = nbBoxPaving
-            results[i,5] = nbBoxReducing
+            results[i,5] = nbBoxReducing   
             results[i,6] = timeLabeling
-            results[i,7] = length(ND_YN)
-            #@show ND_YN
+            results[i,7] = length(ND_YN) 
 
             if graphics
                 if backendGR == :PyPlot
@@ -153,7 +142,7 @@ function main()
         println("      fnames         tOpt        #YN")
         for i in 1:size(results,1)
             @printf(" %11s   %10.6f     %6d\n", results[i,1][1:end-4], results[i,6], results[i,7])
-        end
+        end    
     end
 
     return nothing

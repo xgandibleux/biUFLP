@@ -78,9 +78,16 @@ end
 
 # =============================================================================
 # structure of a label
- mutable struct Label
+mutable struct Label
     CA     :: Vector{Int64}   # (partiel) allocation cost 
-    listJ1 :: Vector{UInt16}   # (partial) allocation of user-service !! Max 65535 users
+    listJ1 :: Vector{Int64}   # (partial) allocation of user-service
+    #
+    function Label() # inner constructor
+        label        = new()
+        label.CA     = [0,0]
+        label.listJ1 = []
+        return label
+    end
     #
     function Label(CA,listJ1) # inner constructor
         label        = new()

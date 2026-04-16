@@ -105,11 +105,58 @@ function displayYN(Y_N,thecolor,themarkerstyle,themarkersize)
     return nothing
 end
 
-
 function displayPaving(paving)
+
     thecolor = "grey"; thelegend = :legendOff; thelinestyle = "-"
     for ib in eachindex(paving)
         displayBoxJ1(paving[ib], ib, thecolor, thelegend, thelinestyle)
     end
     return nothing
 end
+
+#=
+setupGraphic(fname, data, paving)
+
+ib=1
+thecolor = "red"; thelegend = :legendOn; thelinestyle = "-"
+displayBoxJ1(paving[ib], ib, thecolor, thelegend, thelinestyle)
+
+
+
+ib=2
+thecolor = "black"; thelegend = :legendOn; thelinestyle = "--"
+displayBoxJ1(paving[ib], ib, thecolor, thelegend, thelinestyle)
+
+if draw_allRunningCosts
+    displayAllRunningCosts(paving)
+end
+
+if draw_CRplusCA12andCA21
+    ib=3
+    displayCRplusCA12andCA21(paving[ib])
+end
+
+if draw_yNS
+    ib=3
+    displayBoxedyNS(paving[ib])
+end
+
+
+if draw_nondominatedPointsALGO
+    thecolor = "orange"; themarkerstyle = "*"; themarkersize = 15
+    displayYN(all_YN,thecolor,themarkerstyle,themarkersize)
+    thecolor = "green"; themarkerstyle = "o"; themarkersize = 15
+    displayYN(ND_YN,thecolor,themarkerstyle,themarkersize)
+
+end
+
+if draw_nondominatedPoints
+    thecolor = "yellow"; themarkerstyle = "+"; themarkersize = 25
+    displayYN(Y_N,thecolor,themarkerstyle,themarkersize)
+end
+
+draw_paving = true
+if draw_paving
+    displayPaving(paving)
+end
+=#

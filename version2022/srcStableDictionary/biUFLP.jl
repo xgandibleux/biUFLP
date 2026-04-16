@@ -72,6 +72,9 @@ function biUFLPsolver(data::Instance)
     ND_YN, all_YN = labelingPaving!(data, paving)
     timeLabeling = round(time()- getTime, digits=4)
     verboseProd ? println("\n        Time(labeling)  : ", timeLabeling, " sec \n") : nothing    
+    #@show paving
+    #@show all_YN
+    #@show ND_YN
 
     return paving, timePaving, timeReducing, nbBoxPaving, nbBoxReducing, timeLabeling, ND_YN
 end

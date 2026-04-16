@@ -10,12 +10,30 @@
 
     Test if yA stronglyDominates/weaklyDominates/isEqualTo yB
 """
-function isDominates(yA::Vector{Int64}, yB::Vector{Int64}) :: Bool
+function isDominates(yA::Vector{Int64}, yB::Vector{Int64})
 
-    ifelse((@inbounds (yA[1] - yB[1]) ≤ 0) && (@inbounds (yA[2] - yB[2]) ≤ 0), true, false)
+    verboseDev ? print("  yA=$yA  yB=$yB ⟶  ") : nothing
 
+    if (yA[1] < yB[1]) && (yA[2] < yB[2])
+        # strict dominance between yA and yB
+        verboseDev ? println("yA=$(yA) D yB=$(yB)") : nothing
+        return true
+
+    elseif ((yA[1] ≤ yB[1]) && (yA[2] < yB[2])) || ((yA[1] < yB[1]) && (yA[2] ≤ yB[2]))
+        # weak dominance between yA and yB
+        verboseDev ? println("yA=$(yA) W yB=$(yB)") : nothing
+        return true        
+
+    elseif (yA[1] == yB[1]) && (yA[2] == yB[2])
+        # egality between yA and yB
+        verboseDev ? println("yA=$(yA) = yB=$(yB)") : nothing 
+        return true    
+
+    else
+        verboseDev ? println("no D|W|= of yA over yB") : nothing
+        return false
+    end
 end
-
 
 
 # -----------------------------------------------------------------------------

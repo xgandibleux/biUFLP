@@ -68,7 +68,6 @@ function load2UFLP(fdirectory::String, fname::String)
  
     # read the number of users (nI)
     nI = parse(Int, readline(f) )
-    @assert nI ≤ typemax(UInt16) "STOP: Maximum 65535 users"
     # read the number of services (nJ) 
     nJ = parse(Int, readline(f) )
     # read the following line (separator -> line without information)
