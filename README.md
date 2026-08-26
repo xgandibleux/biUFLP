@@ -1,7 +1,6 @@
-# biUFLP2026
+# 2-UFLP
 
-Solver for the bi-objective 0/1 uncapacitated facility location problem
-(**2-UFLP**).
+Solver for the bi-objective 0/1 Uncapacitated Facility Location Problem (**2-UFLP**).
 
 This code implements the three-phase algorithm described in:
 
@@ -13,9 +12,9 @@ This code implements the three-phase algorithm described in:
 
 ## Algorithm overview
 
-The solver computes the complete set of nondominated points `Y_N` in three phases:
+The solver computes the complete set of nondominated points $Y_N$ in three phases:
 
-1. **Paving** — a branch-and-bound builds a set of "boxes" that cover `Y_N`,
+1. **Paving** — a branch-and-bound builds a set of "boxes" that cover $Y_N$,
    pruning subsets of candidate facilities with three dominance-based tests.
 2. **Refinement** — boxes are shrunk or eliminated pairwise using supported
    points computed within each box.
@@ -23,17 +22,16 @@ The solver computes the complete set of nondominated points `Y_N` in three phase
    allocation subproblem associated with each remaining box and extracts the
    locally nondominated points.
 
-A generic ε-constraint method (JuMP + Gurobi) is also available, for cross-validation.
+A generic ε-constraint method (`JuMP` + `Gurobi`) is available for cross-validation.
 
 ## Requirements
 
 - **Julia** ≥ 1.10 (developed and tested with Julia 1.12.5)
 - **Gurobi** with a valid license (academic or commercial).
-- Julia packages to install beforehand (`using Pkg; Pkg.add("...")` in the
-  REPL, or via your editor's package manager):
+- Julia packages to install beforehand (`using Pkg; Pkg.add("...")` in the REPL, or via the package manager):
   - `JuMP`, `Gurobi`
-  - `DataStructures` (mutable binary heap used by the generation phase)
-  - `PyPlot` — only needed if `graphics = true` in `main.jl`
+  - `DataStructures` 
+  - `PyPlot`  
   - `Printf`, `Test` — part of the standard library, nothing to install
 
 ## Project structure
@@ -80,10 +78,10 @@ Everything is set at the top of `src/main.jl`:
 | Constant | Role |
 |---|---|
 | `experiment` | `false`: a single instance; `true`: every instance of a collection |
-| `epsilonCst` | `false`: dedicated solver (`biUFLPsolver`); `true`: generic ε-constraint method |
+| `epsilonCst` | `false`: specific solver (`biUFLPsolver`); `true`: generic solver (`ε-constraint`) |
 | `graphics` | enables figure generation (PyPlot backend) — single-instance mode only |
 | `verboseProd` / `verboseDev` / `verboseDev2` | on-screen trace levels |
-| `dnameRun` / `fnameRun` | folder/file of the instance to solve (single-instance mode) |
+| `dnameRun` / `fnameRun` | folder / file of the instance to solve (single-instance mode) |
 | `dnameExperiment` | collection to iterate over in experiment mode |
 | `figDir` | output folder for figures (`../output` by default) |
 
@@ -92,7 +90,7 @@ in the `# instance selection` block.
 
 ### Output
 
-**Dedicated solver** (`epsilonCst = false`):
+**Specific solver** (`epsilonCst = false`):
 
 ```
       fnames         tPav         tRed         tTot    #BoxPav    #BoxRed         tLab        #YN         tTOT
@@ -103,7 +101,7 @@ in the `# instance selection` block.
 of boxes after paving/refinement; `#YN`: cardinality of the resulting
 nondominated set.
 
-**Generic method** (`epsilonCst = true`):
+**Generic solver** (`epsilonCst = true`):
 
 ```
       fnames         tOpt        #YN
