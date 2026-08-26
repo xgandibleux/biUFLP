@@ -1,0 +1,15 @@
+name = "biUFLP2026"
+uuid = "824b113e-f620-4cfa-aeeb-c94066558c8f"
+authors = ["Xavier Gandibleux <Xavier.Gandibleux@univ-nantes.fr>", "Anthony Przybylski <Anthony.Przybylski@univ-nantes.fr>"]
+version = "0.1.0"
+
+[deps]
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+Gurobi = "2e9cd046-0924-5485-92f1-d5272153d98b"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+julia = "1.10"
