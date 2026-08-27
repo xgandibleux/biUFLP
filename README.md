@@ -41,7 +41,8 @@ biUFLP2026/
 ├── data/
 │   ├── dataDidactic/     # didactic instance (8 customers, 5 facilities)
 │   ├── dataFernandez/    # 28 instances F, 30 customers × 90 facilities
-│   └── dataHarris/       # 5 instances H, 10 customers × {2000..10000} facilities
+│   ├── dataHarris/       # 5 instances H, 10 customers × {2000..10000} facilities
+│   └── dataBeasley/      # 10 instances derived from Beasley's capa/capb (see below)
 ├── output/               # generated figures (created automatically)
 ├── test/
 │   ├── runtests.jl               # automated regression tests (specific solver)
@@ -122,6 +123,10 @@ the end of the resolution (single-instance mode only).
 - **`dataHarris`** — 5 instances from Harris et al. (2009, 2011),
   10 customers × {2000, 4000, 6000, 8000, 10000} facilities, correlation ≈
   0.99 (green logistics context: cost and CO₂ emissions).
+- **`dataBeasley`** — 10 bi-objective instances built by pairing two
+  independent, single-objective capacitated warehouse location instances
+  from OR-Library, `capa` and `capb`,
+  truncated to sizes ranging from 90×30 to 200×50 (customers × facilities).
 
 Full details (cost ranges, provenance): see the paper.
 

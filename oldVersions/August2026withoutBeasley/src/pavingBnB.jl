@@ -28,110 +28,30 @@ end
 
 # =============================================================================
 """
-    DominanceIndex
+    evaluateTest1(bU::Box, listBE::Vector{Box})
 
-    A snapshot of a set of 2D points (the y12/y21 characteristic points of
-    every box currently in `listB`), sorted by the first coordinate together
-    with a running prefix-minimum of the second coordinate. Answers "is this
-    query point weakly dominated by any point in the set?" in O(log n)
-    (binary search + one array lookup) instead of the O(n) linear scan used
-    previously by evaluateTest1/evaluateTest2.
-
-    Rebuilt from scratch (`buildDominanceIndex`) every time `listB` changes.
-    This is deliberately simple rather than fully incremental: insertions
-    into/removals from `listB` are comparatively rare (bounded by the number
-    of boxes ever created — in the hundreds on the instances tested), while
-    Test1/Test2 queries are called once per node explored in the
-    branch-and-bound tree, a count that can be several orders of magnitude
-    larger (e.g. 408 375 Test1 calls and 55 974 Test2 calls, for only 8
-    surviving boxes, on a Beasley-derived instance with just 40 facilities).
-    A full O(m log m) rebuild on every (rare) change is therefore negligible
-    next to the savings on the (frequent) queries it serves.
-"""
-struct DominanceIndex
-    f1          :: Vector{Int64}   # sorted ascending
-    prefixMinF2 :: Vector{Int64}   # prefixMinF2[i] = min(f2[1:i])
-end
-
-
-# =============================================================================
-"""
-    buildDominanceIndex(points::Vector{Tuple{Int64,Int64}})
-
-    Build a DominanceIndex from a (possibly unsorted, possibly empty) list of
-    2D points.
-"""
-function buildDominanceIndex(points::Vector{Tuple{Int64,Int64}})
-
-    sortedPoints = sort(points, by = p -> p[1])
-    n = length(sortedPoints)
-    f1          = Vector{Int64}(undef, n)
-    prefixMinF2 = Vector{Int64}(undef, n)
-    running = typemax(Int64)
-    for i in 1:n
-        f1[i] = sortedPoints[i][1]
-        running = min(running, sortedPoints[i][2])
-        prefixMinF2[i] = running
-    end
-
-    return DominanceIndex(f1, prefixMinF2)
-end
-
-
-# =============================================================================
-"""
-    collectY12Y21Points(listBE::Vector{Box})
-
-    Gather the y12 and y21 characteristic points of every box in listBE, as
-    the flat point list expected by buildDominanceIndex.
-"""
-function collectY12Y21Points(listBE::Vector{Box})
-
-    points = Vector{Tuple{Int64,Int64}}(undef, 2*length(listBE))
-    for (k, b) in enumerate(listBE)
-        points[2k-1] = (b.y12[1], b.y12[2])
-        points[2k]   = (b.y21[1], b.y21[2])
-    end
-
-    return points
-end
-
-
-# =============================================================================
-"""
-    isWeaklyDominatedByAny(idx::DominanceIndex, q1::Int64, q2::Int64)
-
-    True if some point (p1,p2) indexed in idx weakly dominates (q1,q2), i.e.
-    p1<=q1 and p2<=q2.
-"""
-function isWeaklyDominatedByAny(idx::DominanceIndex, q1::Int64, q2::Int64) :: Bool
-
-    isempty(idx.f1) && return false
-    k = searchsortedlast(idx.f1, q1)
-    k == 0 && return false
-
-    return idx.prefixMinF2[k] <= q2
-end
-
-
-# =============================================================================
-"""
-    evaluateTest1(bU::Box, refIndex::DominanceIndex)
-
-    apply the test 1 on bU: is CR of bU weakly dominated by any y12/y21
-    point of a currently expended box, indexed in refIndex?
+    apply the test 1 on bU knowing listBE with 
     - bU: an unexpended box
-    - refIndex: a DominanceIndex over the y12/y21 points of all expended boxes
+    - listBE: a list of expended boxes 
 """
-function evaluateTest1(bU::Box, refIndex::DominanceIndex)
+function evaluateTest1(bU::Box, listBE::Vector{Box})
 
-    verboseDev ? print(bU.CR," <-> [index of ", length(refIndex.f1), " points] ") : nothing
+    verboseDev ? print(bU.CR," <-> ") : nothing
+    for ib in eachindex(listBE)
 
-    result = isWeaklyDominatedByAny(refIndex, bU.CR[1], bU.CR[2])
+        verboseDev ? println(listBE[ib].y12, " ", listBE[ib].y21) : nothing
 
-    verboseDev ? println(result ? "pruning condition found => bU ($(bU.J1)) pruned !!! \n" : "x") : nothing
+        # Test if CR ∈ bU is in the cone of one feasible point y12,y21 of b1 ∈ listBE 
+        if (isDominates(listBE[ib].y12, bU.CR)) || (isDominates(listBE[ib].y21, bU.CR))
+            # found y12 or y21 of a bE who D/W/= CR of bU
+            verboseDev ? println("  pruning condition by y12 or y21 found => bU (",bU.J1,") pruned !!! \n") : nothing
+            return true
+        end
 
-    return result
+    end
+    verboseDev ? println("x") : nothing
+
+    return false
 end
 
 
@@ -175,20 +95,28 @@ end
 
 # =============================================================================
 """
-    evaluateTest2(bE::Box, refIndex::DominanceIndex)
+    evaluateTest2(bE::Box, listBE::Vector{Box})
 
-    apply the test 2: yI of bE weakly dominated by a y12/y21 point of a
-    currently expended box, indexed in refIndex?
+    apply the test 2: yI of bE dominated by  y12,y21 of b ∈ listBE ?
 """
-function evaluateTest2(bE::Box, refIndex::DominanceIndex)
+function evaluateTest2(bE::Box, listBE::Vector{Box})
 
-    verboseDev ? print(bE.yI," <-> [index of ", length(refIndex.f1), " points] ") : nothing
+    verboseDev ? print(bE.yI," <-> ") : nothing
+    for ib in eachindex(listBE)
 
-    result = isWeaklyDominatedByAny(refIndex, bE.yI[1], bE.yI[2])
+        verboseDev ? println(listBE[ib].y12, " ", listBE[ib].y21) : nothing
 
-    verboseDev ? println(result ? "pruning condition found => bE ($(bE.J1)) pruned !!! \n" : "x") : nothing
+        # Test if yI ∈ bE is in the cone of one feasible point y12,y21 of b1 ∈ listBE 
+        if (isDominates(listBE[ib].y12, bE.yI)) || (isDominates(listBE[ib].y21, bE.yI))
+            # found y12 or y21 of b' ∈ listBE who D/W/= yI of bE
+            verboseDev ? println("  pruning condition by y12 or y21 found => bE (",bE.J1,") pruned !!! \n") : nothing
+            return true
+        end
 
-    return result
+    end
+    verboseDev ? println("x") : nothing
+
+    return false    
 end
 
 
@@ -242,16 +170,6 @@ function computePavingBranchAndBound(data::Instance)
     # vector for counting the number of times that a test has been triggered
     nbPruned = Dict(:TEST1 => 0 , :TEST2 => 0, :TEST3 => 0)
 
-    # sorted index over the y12/y21 points of every box currently in listB,
-    # used by evaluateTest1/evaluateTest2 to answer dominance queries in
-    # O(log n) instead of a linear scan of listB (see DominanceIndex above).
-    # Test3 keeps its O(n) scan: it is called far less often (its query
-    # count is bounded by the number of boxes ever pushed into listB, orders
-    # of magnitude smaller than Test1/Test2's call count — see the docstring
-    # of DominanceIndex), so the O(log n) treatment is not worth its added
-    # complexity there.
-    refIndex = buildDominanceIndex(Tuple{Int64,Int64}[])
-
 
     # Root node of the branch-and-bound ---------------------------------------
     # - each level of the tree is composed of nodes, saved consecutively in a list named 'listL'
@@ -295,7 +213,7 @@ function computePavingBranchAndBound(data::Instance)
                 # test1 is not triggered (root node has no predecessor)
                 verboseDev ? println("-") : nothing
             else
-                test1 = evaluateTest1(listL[j],refIndex)
+                test1 = evaluateTest1(listL[j],listB)
             end
 
             if test1
@@ -351,7 +269,7 @@ function computePavingBranchAndBound(data::Instance)
                     verboseDev ? print(j," test 2: ") : nothing
                     # TEST 2 --------------------------------------------------
                     # test if b is weakly dominated
-                    test2 = evaluateTest2(b,refIndex)
+                    test2 = evaluateTest2(b,listB)
                     
                     if test2
 
@@ -361,18 +279,12 @@ function computePavingBranchAndBound(data::Instance)
                     else
                         # ENQUEUE: add in the tree ('listB') the current expended node 'b'
                         pushfirst!(listB, b)
-                        # listB changed (grew): refresh the dominance index used
-                        # by Test1/Test2 (cheap — see DominanceIndex docstring)
-                        refIndex = buildDominanceIndex(collectY12Y21Points(listB))
 
                         verboseDev ? print(j," test 3: ") : nothing
                         # TEST 3 ----------------------------------------------
                         # test if b' ∈ listB is weakly dominated by b
                         evaluateTest3!(b,listB,nbPruned) 
-                        # listB may have shrunk (test3 removes dominated boxes):
-                        # refresh the index again to stay consistent
-                        refIndex = buildDominanceIndex(collectY12Y21Points(listB))
-
+        
                     end
 
                 end

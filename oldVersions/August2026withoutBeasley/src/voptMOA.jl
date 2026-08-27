@@ -53,25 +53,6 @@ function epsilonConstraint(data::Instance, mipOptimizerToUse::String)
     set_time_limit_sec(mod, time_limit)
     MOI.set(mod, MOI.Silent(), true)
 
-    # Both tolerances tightened from Gurobi's defaults after a diagnosed issue
-    # on the Beasley-derived instances (data/dataBeasley): with the default
-    # IntFeasTol (1e-5), a variable value of e.g. 0.999996 is accepted as
-    # "integer enough", and value(mod[:f1])/value(mod[:f2]) evaluate the
-    # objective expressions directly from these near-binary values without
-    # rounding — with ~100 customers each contributing a term potentially
-    # off by ~1e-5 times a cost of a few thousand, the accumulated error can
-    # reach several integer units, causing a single-facility solution to be
-    # reported as two spurious, slightly different points (see commit
-    # history / report for the full diagnosis). Tightening IntFeasTol to
-    # 1e-9 (Gurobi's minimum allowed value) resolved this — confirmed exact
-    # agreement with the dedicated solver's #YN on every instance retested
-    # (dataBeasley 90-30 to 100-50), at negligible time cost. MIPGap is
-    # tightened for the same class of reasons (it addresses a different
-    # tolerance — distance to the true optimum — but does not by itself fix
-    # the issue above).
-    set_optimizer_attribute(mod, "MIPGap", 1e-9)
-    set_optimizer_attribute(mod, "IntFeasTol", 1e-9)
-
     Y_N         = (Vector{Int64})[]    
     getTime     = time()
 
