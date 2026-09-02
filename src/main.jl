@@ -18,7 +18,7 @@ cd(@__DIR__)
 # parameters to control the app
 
 const experiment   = false  # run only one instance or a full numerical experiment
-const epsilonCst   = false  # run JuMP with ϵ-constraint and Gurobi
+const epsilonCst   = true  # run JuMP with ϵ-constraint and Gurobi
 const graphics     = false  # plot graphics (PyPlot backend)
 
 const verboseProd  = false  # display on the terminal the useful info in production
@@ -32,7 +32,7 @@ const verboseDev2  = false  # display on the terminal the development info for p
 # uncomment one (dname, fname) pair; leave only one pair active
 #const dnameRun = "../data/dataDidactic"  ; const fnameRun = "didactic1.txt"
 #const dnameRun = "../data/dataDidactic"  ; const fnameRun = "didactic2.txt"
-const dnameRun  = "../data/dataFernandez" ; const fnameRun = "F50-56.txt"
+const dnameRun  = "../data/dataFernandez" ; const fnameRun = "F55-56.txt"
 #const dnameRun = "../data/dataHarris"    ; const fnameRun = "H10-2000.txt"
 #const dnameRun  = "../data/dataBeasley" ; const fnameRun = "Capa-capb-red-90-50.txt"
 

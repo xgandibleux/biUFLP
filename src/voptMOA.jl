@@ -4,7 +4,7 @@
 # ==============================================================================
 
 println("  Loading and compiling JuMP, Gurobi...")
-using JuMP, Gurobi
+using JuMP, HiGHS #Gurobi
 
 
 # ==============================================================================
@@ -46,7 +46,7 @@ function epsilonConstraint(data::Instance, mipOptimizerToUse::String)
     verboseProd ? println("        nI (users)    : $(data.nI)") : nothing
     verboseProd ? println("        nJ (services) : $(data.nJ)") : nothing
 
-    optimizer   = Gurobi.Optimizer
+    optimizer   = HiGHS.Optimizer #Gurobi.Optimizer
     time_limit  = 600.0
 
     mod = build2UFLP(optimizer, data)
@@ -69,8 +69,8 @@ function epsilonConstraint(data::Instance, mipOptimizerToUse::String)
     # tightened for the same class of reasons (it addresses a different
     # tolerance — distance to the true optimum — but does not by itself fix
     # the issue above).
-    set_optimizer_attribute(mod, "MIPGap", 1e-9)
-    set_optimizer_attribute(mod, "IntFeasTol", 1e-9)
+#    set_optimizer_attribute(mod, "MIPGap", 1e-9)
+#    set_optimizer_attribute(mod, "IntFeasTol", 1e-9)
 
     Y_N         = (Vector{Int64})[]    
     getTime     = time()
