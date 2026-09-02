@@ -3,7 +3,7 @@
 # August 2022 - Revision 2026
 # ==============================================================================
 
-println("  Loading and compiling JuMP, Gurobi...")
+println("  Loading and compiling JuMP, HiGHS...")
 using JuMP, HiGHS #Gurobi
 
 
